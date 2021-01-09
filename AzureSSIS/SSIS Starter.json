@@ -1,0 +1,146 @@
+{
+    "name": "SSIS Starter",
+    "properties": {
+        "activities": [
+            {
+                "name": "Start SSIS",
+                "type": "WebActivity",
+                "dependsOn": [],
+                "policy": {
+                    "timeout": "7.00:00:00",
+                    "retry": 0,
+                    "retryIntervalInSeconds": 30,
+                    "secureOutput": false,
+                    "secureInput": false
+                },
+                "userProperties": [],
+                "typeProperties": {
+                    "url": "",
+                    "method": "POST",
+                    "body": "a"
+                }
+            },
+            {
+                "name": "Wait 2 min",
+                "type": "Wait",
+                "dependsOn": [
+                    {
+                        "activity": "Wait for SSIS",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "waitTimeInSeconds": 120
+                }
+            },
+            {
+                "name": "Wait for SSIS",
+                "type": "Until",
+                "dependsOn": [
+                    {
+                        "activity": "Set SSIS Status to Starting",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@if(equals(variables('SSISStatus'), 'starting'), false, true)",
+                        "type": "Expression"
+                    },
+                    "activities": [
+                        {
+                            "name": "Wait",
+                            "type": "Wait",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "waitTimeInSeconds": 45
+                            }
+                        },
+                        {
+                            "name": "Set SSIS Status",
+                            "type": "SetVariable",
+                            "dependsOn": [
+                                {
+                                    "activity": "Get SSIS Status",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "variableName": "SSISStatus",
+                                "value": {
+                                    "value": "@toLower(activity('Get SSIS Status').state)",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Get SSIS Status",
+                            "type": "WebHook",
+                            "dependsOn": [
+                                {
+                                    "activity": "Wait",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "url": "",
+                                "method": "POST",
+                                "timeout": "00:5:00"
+                            }
+                        }
+                    ],
+                    "timeout": "0.00:50:00"
+                }
+            },
+            {
+                "name": "Set SSIS Status to Starting",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "Start SSIS",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "SSISStatus",
+                    "value": {
+                        "value": "starting",
+                        "type": "Expression"
+                    }
+                }
+            }
+        ],
+        "variables": {
+            "SSISStatus": {
+                "type": "String",
+                "defaultValue": "starting"
+            },
+            "SSISRetryCount": {
+                "type": "String",
+                "defaultValue": "0"
+            },
+            "TempVariable": {
+                "type": "String"
+            }
+        },
+        "annotations": [],
+        "lastPublishTime": "2020-12-28T07:27:03Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,174 @@
+{
+    "name": "SSIS Timer Every 60 minutes",
+    "properties": {
+        "activities": [
+            {
+                "name": "If UTC Hour ge 2 and lt 6 and not weekend",
+                "description": "Runs an SSIS package between 2 AM and 6 AM UTC time on weekdays",
+                "type": "IfCondition",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@and(and(greaterOrEquals( startOfHour( utcNow() ), addhours(startOfDay(utcNow()), 3)), less( startOfHour( utcNow() ), addhours(startOfDay(utcNow()), 6))), and(less(dayOfWeek(utcNow()), 7), greater(dayOfWeek(utcNow()), 0)))",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Execute SSIS Starter",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "SSIS Starter Retry Loop",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true
+                            }
+                        },
+                        {
+                            "name": "Execute SSIS Runner",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [
+                                {
+                                    "activity": "Execute SSIS Starter",
+                                    "dependencyConditions": [
+                                        "Completed"
+                                    ]
+                                }
+                            ],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "SSIS Runner",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true
+                            }
+                        },
+                        {
+                            "name": "Execute SSIS Stopper",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [
+                                {
+                                    "activity": "Execute SSIS Runner",
+                                    "dependencyConditions": [
+                                        "Completed"
+                                    ]
+                                }
+                            ],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "SSIS Stopper",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "If UTC Hour eq 7 and not weekend",
+                "description": "Runs an SSIS package at 7 AM UTC time on weekdays",
+                "type": "IfCondition",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@and(equals( startOfHour( utcNow() ), addhours(startOfDay(utcNow()), 7)), and(less(dayOfWeek(utcNow()), 7), greater(dayOfWeek(utcNow()), 0)))",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Execute SSIS Starter 2",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "SSIS Starter",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true
+                            }
+                        },
+                        {
+                            "name": "Execute SSIS Runner 2",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [
+                                {
+                                    "activity": "Execute SSIS Starter 2",
+                                    "dependencyConditions": [
+                                        "Completed"
+                                    ]
+                                }
+                            ],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "SSIS Runner",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                "name": "If UTC Hour eq 15 and not weekend",
+                "description": "Runs an SSIS package at 3 PM UTC time on weekdays",
+                "type": "IfCondition",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@and(equals( startOfHour( utcNow() ), addhours(startOfDay(utcNow()), 15)), and(less(dayOfWeek(utcNow()), 7), greater(dayOfWeek(utcNow()), 0)))",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Execute SSIS Runner_copy1",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "SSIS Runner",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true
+                            }
+                        },
+                        {
+                            "name": "Execute SSIS Stopper_copy1",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [
+                                {
+                                    "activity": "Execute SSIS Runner_copy1",
+                                    "dependencyConditions": [
+                                        "Completed"
+                                    ]
+                                }
+                            ],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "SSIS Stopper",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "annotations": [],
+        "lastPublishTime": "2020-12-17T12:01:45Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,167 @@
+{
+    "name": "SSIS Starter Retry Loop",
+    "properties": {
+        "activities": [
+            {
+                "name": "Start SSIS Retry Loop",
+                "type": "Until",
+                "dependsOn": [
+                    {
+                        "activity": "Set SSIS Status Before Start",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@if(or(equals(variables('SSISStatus'), 'started'), greater(int(variables('SSISRetryCount')),2)), true, false)",
+                        "type": "Expression"
+                    },
+                    "activities": [
+                        {
+                            "name": "Execute SSIS Starter",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "SSIS Starter",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true
+                            }
+                        },
+                        {
+                            "name": "Increment Retry Count",
+                            "type": "SetVariable",
+                            "dependsOn": [
+                                {
+                                    "activity": "Set Temp Variable to RetryCount",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "variableName": "SSISRetryCount",
+                                "value": {
+                                    "value": "@string(add(int(variables('TempVariable')), 1))",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Set Temp Variable to RetryCount",
+                            "type": "SetVariable",
+                            "dependsOn": [
+                                {
+                                    "activity": "Execute SSIS Starter",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "variableName": "TempVariable",
+                                "value": {
+                                    "value": "@variables('SSISRetryCount')",
+                                    "type": "Expression"
+                                }
+                            }
+                        },
+                        {
+                            "name": "Get SSIS Status After Starter",
+                            "type": "WebHook",
+                            "dependsOn": [
+                                {
+                                    "activity": "Increment Retry Count",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "url": "",
+                                "method": "POST",
+                                "timeout": "00:5:00"
+                            }
+                        },
+                        {
+                            "name": "Set SSIS Status After Starter",
+                            "type": "SetVariable",
+                            "dependsOn": [
+                                {
+                                    "activity": "Get SSIS Status After Starter",
+                                    "dependencyConditions": [
+                                        "Succeeded"
+                                    ]
+                                }
+                            ],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "variableName": "SSISStatus",
+                                "value": {
+                                    "value": "@toLower(activity('Get SSIS Status After Starter').state)",
+                                    "type": "Expression"
+                                }
+                            }
+                        }
+                    ],
+                    "timeout": "0.01:30:00"
+                }
+            },
+            {
+                "name": "Set SSIS Status Before Start",
+                "type": "SetVariable",
+                "dependsOn": [
+                    {
+                        "activity": "Get SSIS Status Before Start",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "variableName": "SSISStatus",
+                    "value": {
+                        "value": "@toLower(activity('Get SSIS Status Before Start').state)",
+                        "type": "Expression"
+                    }
+                }
+            },
+            {
+                "name": "Get SSIS Status Before Start",
+                "type": "WebHook",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "url": "",
+                    "method": "POST",
+                    "timeout": "00:5:00"
+                }
+            }
+        ],
+        "variables": {
+            "SSISStatus": {
+                "type": "String",
+                "defaultValue": "starting"
+            },
+            "SSISRetryCount": {
+                "type": "String",
+                "defaultValue": "0"
+            },
+            "TempVariable": {
+                "type": "String"
+            }
+        },
+        "annotations": [],
+        "lastPublishTime": "2020-12-17T12:00:57Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}

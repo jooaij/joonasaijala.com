@@ -1,0 +1,38 @@
+{
+    "name": "SSIS Timer Every 10 minutes",
+    "properties": {
+        "activities": [
+            {
+                "name": "If UTC Hour ge 8 and lt 15 and not weekend",
+                "description": "Runs an SSIS package between 8 AM and 3 PM UTC time on weekdays",
+                "type": "IfCondition",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@and(and(greaterOrEquals( startOfHour( utcNow() ), addhours(startOfDay(utcNow()), 8)), less( startOfHour( utcNow() ), addhours(startOfDay(utcNow()), 15))), and(less(dayOfWeek(utcNow()), 7), greater(dayOfWeek(utcNow()), 0)))",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Execute SSIS Runner 2",
+                            "type": "ExecutePipeline",
+                            "dependsOn": [],
+                            "userProperties": [],
+                            "typeProperties": {
+                                "pipeline": {
+                                    "referenceName": "SSIS Runner",
+                                    "type": "PipelineReference"
+                                },
+                                "waitOnCompletion": true
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "annotations": [],
+        "lastPublishTime": "2020-10-16T14:11:11Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}
