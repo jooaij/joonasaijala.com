@@ -1,0 +1,72 @@
+{
+    "name": "SSIS Runner",
+    "properties": {
+        "activities": [
+            {
+                "name": "Get SSIS Status",
+                "type": "WebHook",
+                "dependsOn": [],
+                "userProperties": [],
+                "typeProperties": {
+                    "url": "",
+                    "method": "POST",
+                    "timeout": "00:5:00"
+                }
+            },
+            {
+                "name": "If SSIS is Started",
+                "type": "IfCondition",
+                "dependsOn": [
+                    {
+                        "activity": "Get SSIS Status",
+                        "dependencyConditions": [
+                            "Succeeded"
+                        ]
+                    }
+                ],
+                "userProperties": [],
+                "typeProperties": {
+                    "expression": {
+                        "value": "@equals(toLower(activity('Get SSIS Status').state), 'started')",
+                        "type": "Expression"
+                    },
+                    "ifTrueActivities": [
+                        {
+                            "name": "Execute SSIS",
+                            "type": "ExecuteSSISPackage",
+                            "dependsOn": [],
+                            "policy": {
+                                "timeout": "7.00:00:00",
+                                "retry": 0,
+                                "retryIntervalInSeconds": 30,
+                                "secureOutput": false,
+                                "secureInput": false
+                            },
+                            "userProperties": [],
+                            "typeProperties": {
+                                "packageLocation": {
+                                    "packagePath": "",
+                                    "type": "SSISDB"
+                                },
+                                "connectVia": {
+                                    "referenceName": "SSIS",
+                                    "type": "IntegrationRuntimeReference"
+                                },
+                                "loggingLevel": "Basic"
+                            }
+                        }
+                    ]
+                }
+            }
+        ],
+        "variables": {
+            "SSISStatus": {
+                "type": "String",
+                "defaultValue": "0"
+            }
+        },
+        "annotations": [],
+        "lastPublishTime": "2020-12-16T09:44:43Z"
+    },
+    "type": "Microsoft.DataFactory/factories/pipelines"
+}
