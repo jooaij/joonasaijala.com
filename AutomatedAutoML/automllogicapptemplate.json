@@ -1,0 +1,224 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "Create_CSV_table": {
+                "inputs": {
+                    "format": "CSV",
+                    "from": "@variables('Items')"
+                },
+                "runAfter": {
+                    "Until": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Table"
+            },
+            "Execute_Azure_ML_pipeline": {
+                "inputs": {
+                    "authentication": {
+                        "type": "ManagedServiceIdentity"
+                    },
+                    "body": {},
+                    "method": "POST",
+                    "uri": ""
+                },
+                "runAfter": {
+                    "Create_blob": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Http"
+            },
+            "Initialize_Columns": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Columns",
+                            "type": "string",
+                            "value": "?$select=Title,Time_x0020_of_x0020_day,Number_x0020_of_x0020_Finnish_x0,Number_x0020_of_x0020_British_x0,Number_x0020_of_x0020_other_x002,Cups_x0020_of_x0020_coffee_x0020"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Initialize_ListGuid": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "Initialize_Item_collection": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "Items",
+                            "type": "array"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Initialize_RequestUrl": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "Initialize_ListGuid": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "ListGuid",
+                            "type": "string",
+                            "value": ""
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Initialize_SiteUrl": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "Initialize_RequestUrl": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "RequestUrl",
+                            "type": "string",
+                            "value": "@{variables('SiteUrl')}/_api/web/lists(guid'@{variables('ListGuid')}')/items@{variables('Columns')}"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Initialize_Columns": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "Initialize_SiteUrl": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "SiteUrl",
+                            "type": "string",
+                            "value": ""
+                        }
+                    ]
+                },
+                "runAfter": {},
+                "type": "InitializeVariable"
+            },
+            "Until": {
+                "actions": {
+                    "Get_items": {
+                        "inputs": {
+                            "authentication": {
+                                "audience": "https://jodlabs.sharepoint.com/",
+                                "type": "ManagedServiceIdentity"
+                            },
+                            "headers": {
+                                "Accept": "application/json;odata=verbose"
+                            },
+                            "method": "GET",
+                            "uri": "@variables('RequestUrl')"
+                        },
+                        "runAfter": {},
+                        "type": "Http"
+                    },
+                    "Join_mapped_list_items_to_Items_variable": {
+                        "inputs": "@union(variables('Items'), body('Map_list_items_to_arrays'))",
+                        "runAfter": {
+                            "Map_list_items_to_arrays": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Compose"
+                    },
+                    "Map_list_items_to_arrays": {
+                        "inputs": {
+                            "from": "@body('Get_items')['d']['results']",
+                            "select": {
+                                "British people": "@item()['Number_x0020_of_x0020_British_x0']",
+                                "Coffee consumption": "@item()['Cups_x0020_of_x0020_coffee_x0020']",
+                                "Finnish people": "@item()['Number_x0020_of_x0020_Finnish_x0']",
+                                "Other nationalities": "@item()['Number_x0020_of_x0020_other_x002']",
+                                "Season": "@item()['Title']",
+                                "Time of day": "@item()['Time_x0020_of_x0020_day']"
+                            }
+                        },
+                        "runAfter": {
+                            "Get_items": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Select"
+                    },
+                    "Set_Items_variable_to_joined_items": {
+                        "inputs": {
+                            "name": "Items",
+                            "value": "@outputs('Join_mapped_list_items_to_Items_variable')"
+                        },
+                        "runAfter": {
+                            "Join_mapped_list_items_to_Items_variable": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "SetVariable"
+                    },
+                    "Set_RequestUrl_to___next_url": {
+                        "inputs": {
+                            "name": "RequestUrl",
+                            "value": "@{if(contains(body('Get_items')['d'],'__next'), body('Get_items')['d']['__next'], '')}"
+                        },
+                        "runAfter": {
+                            "Set_Items_variable_to_joined_items": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "SetVariable"
+                    }
+                },
+                "expression": "@less(length(variables('RequestUrl')), 1)",
+                "limit": {
+                    "count": 5000,
+                    "timeout": "PT24H"
+                },
+                "runAfter": {
+                    "Initialize_Item_collection": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Until"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "Recurrence": {
+                "recurrence": {
+                    "frequency": "Week",
+                    "interval": 1,
+                    "schedule": {
+                        "hours": [
+                            "4"
+                        ],
+                        "weekDays": [
+                            "Saturday"
+                        ]
+                    }
+                },
+                "type": "Recurrence"
+            }
+        }
+    },
+    "parameters": {
+    }
+}
